@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Secure MFA"
+version = "1.0.0"
+id = "artifacts/secure-mfa"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18160
+
+[services.development]
+run = "pnpm --filter @workspace/secure-mfa run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/secure-mfa", "run", "build" ]
+publicDir = "artifacts/secure-mfa/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18160"
+BASE_PATH = "/"

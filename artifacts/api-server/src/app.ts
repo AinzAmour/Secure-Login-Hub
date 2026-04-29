@@ -1,6 +1,7 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
+import cookieSession from "cookie-session";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -25,9 +26,25 @@ app.use(
     },
   }),
 );
-app.use(cors());
-app.use(express.json());
+
+app.set("trust proxy", 1);
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
+
+const sessionSecret =
+  process.env["SESSION_SECRET"] ?? "dev-only-session-secret-change-me";
+
+app.use(
+  cookieSession({
+    name: "sentinel.sid",
+    keys: [sessionSecret],
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env["NODE_ENV"] === "production",
+  }),
+);
 
 app.use("/api", router);
 

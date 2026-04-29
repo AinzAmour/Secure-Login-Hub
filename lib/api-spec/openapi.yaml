@@ -3,20 +3,23 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Secure MFA API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication and MFA endpoints
+  - name: account
+    description: Authenticated account endpoints
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +27,245 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register/start:
+    post:
+      operationId: registerStart
+      tags: [auth]
+      summary: Begin registration by sending an OTP to the user's email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterStartBody"
+      responses:
+        "200":
+          description: OTP issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OtpIssuedResponse"
+
+  /auth/register/verify-otp:
+    post:
+      operationId: registerVerifyOtp
+      tags: [auth]
+      summary: Verify the email OTP and obtain a registration token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyOtpBody"
+      responses:
+        "200":
+          description: OTP verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegistrationTokenResponse"
+
+  /auth/register/complete:
+    post:
+      operationId: registerComplete
+      tags: [auth]
+      summary: Complete registration (sets MPIN, Aadhaar, name, optional face descriptor)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterCompleteBody"
+      responses:
+        "200":
+          description: User created and signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionUserResponse"
+
+  /auth/webauthn/register/options:
+    post:
+      operationId: webauthnRegisterOptions
+      tags: [auth]
+      summary: Generate WebAuthn registration challenge for current session
+      responses:
+        "200":
+          description: WebAuthn registration options
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebauthnRegisterOptions"
+
+  /auth/webauthn/register/verify:
+    post:
+      operationId: webauthnRegisterVerify
+      tags: [auth]
+      summary: Verify and persist a new WebAuthn credential
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebauthnRegisterVerifyBody"
+      responses:
+        "200":
+          description: Credential registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimpleOk"
+
+  /auth/face/enroll:
+    post:
+      operationId: enrollFace
+      tags: [auth]
+      summary: Enroll a face descriptor for the current user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrollFaceBody"
+      responses:
+        "200":
+          description: Face enrolled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimpleOk"
+
+  /auth/login/lookup:
+    post:
+      operationId: loginLookup
+      tags: [auth]
+      summary: Verify email + MPIN and return available second-factor methods
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginLookupBody"
+      responses:
+        "200":
+          description: MPIN verified, second factor required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginChallengeResponse"
+
+  /auth/login/face:
+    post:
+      operationId: loginFace
+      tags: [auth]
+      summary: Complete login using a face descriptor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginFaceBody"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionUserResponse"
+
+  /auth/login/webauthn/options:
+    post:
+      operationId: loginWebauthnOptions
+      tags: [auth]
+      summary: Generate WebAuthn assertion options for login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginWebauthnOptionsBody"
+      responses:
+        "200":
+          description: WebAuthn assertion options
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebauthnAuthOptions"
+
+  /auth/login/webauthn/verify:
+    post:
+      operationId: loginWebauthnVerify
+      tags: [auth]
+      summary: Complete login by verifying a WebAuthn assertion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginWebauthnVerifyBody"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionUserResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: End the current session
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimpleOk"
+
+  /account/me:
+    get:
+      operationId: getMe
+      tags: [account]
+      summary: Get the current authenticated user profile
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionUserResponse"
+
+  /account/security:
+    get:
+      operationId: getSecurityStatus
+      tags: [account]
+      summary: Get the current MFA setup status
+      responses:
+        "200":
+          description: Security overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecurityStatus"
+
+  /account/activity:
+    get:
+      operationId: getRecentActivity
+      tags: [account]
+      summary: Recent authentication activity for the user
+      responses:
+        "200":
+          description: Activity list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityEvent"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +273,242 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    SimpleOk:
+      type: object
+      properties:
+        ok:
+          type: boolean
+      required: [ok]
+
+    OtpIssuedResponse:
+      type: object
+      properties:
+        email:
+          type: string
+        expiresInSeconds:
+          type: integer
+        # demoOtp is only populated when running without a real email provider
+        demoOtp:
+          type: string
+          nullable: true
+      required: [email, expiresInSeconds]
+
+    RegisterStartBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required: [email]
+
+    VerifyOtpBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        otp:
+          type: string
+          minLength: 6
+          maxLength: 6
+      required: [email, otp]
+
+    RegistrationTokenResponse:
+      type: object
+      properties:
+        registrationToken:
+          type: string
+        email:
+          type: string
+        expiresInSeconds:
+          type: integer
+      required: [registrationToken, email, expiresInSeconds]
+
+    RegisterCompleteBody:
+      type: object
+      properties:
+        registrationToken:
+          type: string
+        fullName:
+          type: string
+          minLength: 2
+          maxLength: 80
+        aadhaarNumber:
+          type: string
+          minLength: 12
+          maxLength: 12
+        mpin:
+          type: string
+          minLength: 6
+          maxLength: 6
+        faceDescriptor:
+          type: array
+          nullable: true
+          items:
+            type: number
+      required: [registrationToken, fullName, aadhaarNumber, mpin]
+
+    SessionUserResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+      required: [user]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        fullName:
+          type: string
+        aadhaarMasked:
+          type: string
+          description: Aadhaar number with all but the last 4 digits masked
+        hasFaceEnrolled:
+          type: boolean
+        hasBiometricEnrolled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - fullName
+        - aadhaarMasked
+        - hasFaceEnrolled
+        - hasBiometricEnrolled
+        - createdAt
+
+    SecurityStatus:
+      type: object
+      properties:
+        email:
+          type: string
+        mpinSet:
+          type: boolean
+        faceEnrolled:
+          type: boolean
+        biometricEnrolled:
+          type: boolean
+        biometricCount:
+          type: integer
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [email, mpinSet, faceEnrolled, biometricEnrolled, biometricCount]
+
+    ActivityEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          description: Event kind, e.g. login_success, login_failed, register, enroll_face
+        method:
+          type: string
+          nullable: true
+          description: Method used (mpin, face, biometric, otp)
+        success:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        ipAddress:
+          type: string
+          nullable: true
+      required: [id, kind, success, createdAt]
+
+    EnrollFaceBody:
+      type: object
+      properties:
+        faceDescriptor:
+          type: array
+          items:
+            type: number
+      required: [faceDescriptor]
+
+    LoginLookupBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        mpin:
+          type: string
+          minLength: 6
+          maxLength: 6
+      required: [email, mpin]
+
+    LoginChallengeResponse:
+      type: object
+      properties:
+        challengeToken:
+          type: string
+        availableFactors:
+          type: array
+          items:
+            type: string
+            description: One of "face" or "biometric"
+        userHint:
+          type: object
+          properties:
+            fullName:
+              type: string
+            email:
+              type: string
+          required: [fullName, email]
+      required: [challengeToken, availableFactors, userHint]
+
+    LoginFaceBody:
+      type: object
+      properties:
+        challengeToken:
+          type: string
+        faceDescriptor:
+          type: array
+          items:
+            type: number
+      required: [challengeToken, faceDescriptor]
+
+    LoginWebauthnOptionsBody:
+      type: object
+      properties:
+        challengeToken:
+          type: string
+      required: [challengeToken]
+
+    LoginWebauthnVerifyBody:
+      type: object
+      properties:
+        challengeToken:
+          type: string
+        assertion:
+          type: object
+          additionalProperties: true
+      required: [challengeToken, assertion]
+
+    WebauthnRegisterOptions:
+      type: object
+      additionalProperties: true
+      description: Raw SimpleWebAuthn registration options JSON
+
+    WebauthnRegisterVerifyBody:
+      type: object
+      properties:
+        attestation:
+          type: object
+          additionalProperties: true
+      required: [attestation]
+
+    WebauthnAuthOptions:
+      type: object
+      additionalProperties: true
+      description: Raw SimpleWebAuthn authentication options JSON
