@@ -5,7 +5,19 @@ import { verifiableCredentialsTable, riskEventsTable } from "@workspace/db/schem
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
 
+import { checkRateLimit } from "../lib/redis/rate-limit";
+
 const router = Router();
+
+// Rate limit verification endpoint
+router.use("/verify", async (req, res, next) => {
+  const identifier = req.ip || 'anonymous';
+  const result = await checkRateLimit(`reclaim_verify_${identifier}`);
+  if (!result.success) {
+    return res.status(429).json({ error: 'Too many verification attempts' });
+  }
+  next();
+});
 
 // Reclaim Config - Should ideally be in .env
 const APP_ID = process.env.VITE_RECLAIM_APP_ID || "YOUR_APP_ID";

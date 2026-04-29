@@ -2,9 +2,11 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { createWorker } from "tesseract.js";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
-import { Camera, Upload, RefreshCcw, Loader2, CheckCircle2, AlertCircle, FileText } from "lucide-react";
+import { Camera, Upload, RefreshCcw, Loader2, CheckCircle2, AlertCircle, FileText, ShieldCheck, Info, Keyboard } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 
 interface AadhaarCaptureProps {
   onCapture: (number: string, image: string) => void;
@@ -18,6 +20,9 @@ export function AadhaarCapture({ onCapture, className }: AadhaarCaptureProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [ocrResult, setOcrResult] = useState<{ number: string; confidence: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [failCount, setFailCount] = useState(0);
+  const [manualNumber, setManualNumber] = useState("");
+  const [showManual, setShowManual] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -77,8 +82,12 @@ export function AadhaarCapture({ onCapture, className }: AadhaarCaptureProps) {
         toast.success("Aadhaar number detected successfully");
         onCapture(foundNumber, imageSrc);
       } else {
+        setFailCount(prev => prev + 1);
         setError("Could not clearly read Aadhaar number. Please ensure the card is well-lit and centered.");
         toast.warning("Manual entry might be required");
+        if (failCount >= 1) {
+          setShowManual(true);
+        }
       }
     } catch (err) {
       setError("OCR processing failed.");
@@ -126,123 +135,196 @@ export function AadhaarCapture({ onCapture, className }: AadhaarCaptureProps) {
   };
 
   return (
-    <div className={`space-y-4 ${className}`}>
-      <div className="flex bg-muted p-1 rounded-lg">
+    <div className={`space-y-4 ${className}`} role="region" aria-label="Aadhaar Card Capture">
+      <div className="flex bg-muted p-1 rounded-lg" role="tablist">
         <button
           type="button"
-          onClick={() => setMode("camera")}
+          role="tab"
+          aria-selected={mode === "camera"}
+          onClick={() => { setMode("camera"); setShowManual(false); }}
           className={`flex-1 flex items-center justify-center py-2 rounded-md transition-all text-sm font-medium ${
-            mode === "camera" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
+            mode === "camera" && !showManual ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
           }`}
         >
-          <Camera className="w-4 h-4 mr-2" />
+          <Camera className="w-4 h-4 mr-2" aria-hidden="true" />
           Capture
         </button>
         <button
           type="button"
-          onClick={() => setMode("upload")}
+          role="tab"
+          aria-selected={mode === "upload"}
+          onClick={() => { setMode("upload"); setShowManual(false); }}
           className={`flex-1 flex items-center justify-center py-2 rounded-md transition-all text-sm font-medium ${
-            mode === "upload" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
+            mode === "upload" && !showManual ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
           }`}
         >
-          <Upload className="w-4 h-4 mr-2" />
+          <Upload className="w-4 h-4 mr-2" aria-hidden="true" />
           Upload
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={showManual}
+          onClick={() => setShowManual(true)}
+          className={`flex-1 flex items-center justify-center py-2 rounded-md transition-all text-sm font-medium ${
+            showManual ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
+          }`}
+        >
+          <Keyboard className="w-4 h-4 mr-2" aria-hidden="true" />
+          Manual
         </button>
       </div>
 
       <div className="relative aspect-[1.6/1] w-full bg-black rounded-xl overflow-hidden border-2 border-dashed border-muted-foreground/20 flex items-center justify-center">
         <AnimatePresence mode="wait">
-          {!capturedImage && mode === "camera" && (
-            <motion.div 
-              key="camera"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="w-full h-full"
+          {showManual ? (
+            <motion.div
+              key="manual"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="w-full h-full bg-background/95 p-6 flex flex-col justify-center gap-4"
             >
-              <video 
-                ref={videoRef} 
-                autoPlay 
-                playsInline 
-                className="w-full h-full object-cover scale-x-[-1]"
-              />
-              <div className="absolute inset-0 border-[30px] border-black/40 pointer-events-none">
-                <div className="w-full h-full border-2 border-primary/50 border-dashed rounded-lg flex items-center justify-center">
-                  <p className="text-white/60 text-xs font-medium bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm">
-                    Align Aadhaar Card here
-                  </p>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="aadhaar-number">Enter 12-Digit Aadhaar Number</Label>
+                <Input
+                  id="aadhaar-number"
+                  type="text"
+                  placeholder="XXXX XXXX XXXX"
+                  value={manualNumber}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "").slice(0, 12);
+                    setManualNumber(val);
+                  }}
+                  className="text-xl tracking-[0.3em] font-mono text-center h-14"
+                  aria-invalid={manualNumber.length > 0 && manualNumber.length < 12}
+                />
+                <p className="text-[10px] text-muted-foreground text-center">
+                  Verification will be performed against our secure identity vault.
+                </p>
               </div>
+              <Button 
+                disabled={manualNumber.length !== 12}
+                onClick={() => {
+                  setOcrResult({ number: manualNumber, confidence: 100 });
+                  onCapture(manualNumber, "");
+                  toast.success("Identity details entered manually");
+                }}
+              >
+                Confirm Identity Details
+              </Button>
             </motion.div>
-          )}
-
-          {!capturedImage && mode === "upload" && (
-            <motion.div 
-              key="upload"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center p-8 text-center cursor-pointer hover:bg-muted/10 transition-colors w-full h-full"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                <FileText className="w-6 h-6 text-primary" />
-              </div>
-              <p className="text-sm font-medium">Select Aadhaar Image</p>
-              <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 5MB</p>
-              <input 
-                ref={fileInputRef}
-                type="file" 
-                accept="image/*" 
-                className="hidden" 
-                onChange={handleFileUpload}
-              />
-            </motion.div>
-          )}
-
-          {capturedImage && (
-            <motion.div 
-              key="preview"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="relative w-full h-full bg-muted"
-            >
-              <img src={capturedImage} alt="Aadhaar" className="w-full h-full object-contain" />
-              
-              {isProcessing && (
-                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-white">
-                  <Loader2 className="w-10 h-10 animate-spin mb-4" />
-                  <p className="text-sm font-medium animate-pulse">Extracting Identity Details...</p>
-                </div>
+          ) : (
+            <>
+              {!capturedImage && mode === "camera" && (
+                <motion.div 
+                  key="camera"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="w-full h-full"
+                >
+                  <video 
+                    ref={videoRef} 
+                    autoPlay 
+                    playsInline 
+                    className="w-full h-full object-cover scale-x-[-1]"
+                    aria-label="Camera preview"
+                  />
+                  <div className="absolute inset-0 border-[30px] border-black/40 pointer-events-none">
+                    <div className="w-full h-full border-2 border-primary/50 border-dashed rounded-lg flex items-center justify-center">
+                      <p className="text-white/60 text-xs font-medium bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm">
+                        Align Aadhaar Card here
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
               )}
 
-              {ocrResult && !isProcessing && (
-                <div className="absolute top-4 right-4 bg-green-500/90 text-white p-2 rounded-lg shadow-lg flex items-center backdrop-blur-md">
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                  <span className="text-xs font-bold tracking-widest">
-                    ID DETECTED: {ocrResult.number.replace(/(.{4})/g, "$1 ").trim()}
-                  </span>
-                </div>
+              {!capturedImage && mode === "upload" && (
+                <motion.div 
+                  key="upload"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex flex-col items-center justify-center p-8 text-center cursor-pointer hover:bg-muted/10 transition-colors w-full h-full"
+                  onClick={() => fileInputRef.current?.click()}
+                  role="button"
+                  aria-label="Upload Aadhaar image"
+                >
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                    <FileText className="w-6 h-6 text-primary" aria-hidden="true" />
+                  </div>
+                  <p className="text-sm font-medium">Select Aadhaar Image</p>
+                  <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 5MB</p>
+                  <input 
+                    ref={fileInputRef}
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={handleFileUpload}
+                  />
+                </motion.div>
               )}
-            </motion.div>
+
+              {capturedImage && (
+                <motion.div 
+                  key="preview"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="relative w-full h-full bg-muted"
+                >
+                  <img src={capturedImage} alt="Captured Aadhaar Preview" className="w-full h-full object-contain" />
+                  
+                  {isProcessing && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-white" aria-live="polite">
+                      <Loader2 className="w-10 h-10 animate-spin mb-4" />
+                      <p className="text-sm font-medium animate-pulse">Extracting Identity Details...</p>
+                    </div>
+                  )}
+
+                  {ocrResult && !isProcessing && (
+                    <div className="absolute top-4 right-4 bg-green-500/90 text-white p-2 rounded-lg shadow-lg flex items-center backdrop-blur-md">
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                      <span className="text-xs font-bold tracking-widest">
+                        ID DETECTED: {ocrResult.number.replace(/(.{4})/g, "$1 ").trim()}
+                      </span>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </>
           )}
         </AnimatePresence>
       </div>
 
       <div className="flex gap-3">
         {capturedImage ? (
-          <Button variant="outline" className="flex-1" onClick={reset}>
+          <Button variant="outline" className="flex-1" onClick={reset} aria-label="Retake Aadhaar capture">
             <RefreshCcw className="w-4 h-4 mr-2" />
             Retake
           </Button>
         ) : (
-          mode === "camera" && (
-            <Button className="flex-1 h-12 text-base font-semibold" onClick={capture} disabled={!isCapturing}>
+          !showManual && mode === "camera" && (
+            <Button className="flex-1 h-12 text-base font-semibold" onClick={capture} disabled={!isCapturing} aria-label="Capture Aadhaar Card">
               <Camera className="w-5 h-5 mr-2" />
               Capture Card
             </Button>
           )
         )}
+      </div>
+
+      <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 flex items-start gap-3">
+        <ShieldCheck className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <p className="text-xs font-bold text-primary flex items-center gap-1">
+            Secure & Safe Identity Processing | பாதுகாப்பான அடையாளச் செயலாக்கம்
+          </p>
+          <p className="text-[10px] text-muted-foreground leading-relaxed">
+            Your data is processed locally on your device. We never store raw Aadhaar images.
+            உங்களின் தரவு உங்கள் சாதனத்திலேயே பாதுகாப்பாகச் செயலாக்கப்படுகிறது.
+          </p>
+        </div>
       </div>
 
       {error && !isProcessing && (

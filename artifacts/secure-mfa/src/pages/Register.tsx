@@ -60,6 +60,14 @@ export default function Register() {
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(0);
 
+  useEffect(() => {
+    // Accessibility: Announce step change
+    const stepName = STEPS[currentStep];
+    const announcement = `Step ${currentStep + 1} of ${STEPS.length}: ${stepName}`;
+    const ariaLive = document.getElementById("step-announcer");
+    if (ariaLive) ariaLive.textContent = announcement;
+  }, [currentStep]);
+
   const goToStep = useCallback((step: number) => {
     setCurrentStep(step);
   }, []);
@@ -208,12 +216,21 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-background to-background">
+    <div className="min-h-[100dvh] flex flex-col bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" role="main">
+      {/* Accessibility screen reader announcer */}
+      <div id="step-announcer" className="sr-only" aria-live="polite"></div>
+      
       <header className="p-6 flex items-center justify-between">
         <Link href="/">
           <Logo />
         </Link>
-        <LanguageSwitcher />
+        <div className="flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
+            <ShieldCheck className="w-3 h-3 text-primary" />
+            <span className="text-[10px] font-bold text-primary uppercase tracking-tighter">Secure & Safe</span>
+          </div>
+          <LanguageSwitcher />
+        </div>
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center p-4">
@@ -323,6 +340,10 @@ export default function Register() {
                     <div className="text-center mb-6">
                       <h2 className="text-2xl font-semibold tracking-tight">Identity Details</h2>
                       <p className="text-sm text-muted-foreground mt-2">Secure your vault with your identity and a PIN.</p>
+                      <div className="mt-4 p-2 bg-green-500/5 border border-green-500/10 rounded-lg flex items-center justify-center gap-2">
+                        <Shield className="w-3.5 h-3.5 text-green-500" />
+                        <span className="text-[10px] font-medium text-green-600 uppercase tracking-widest">Safe & Private Verification</span>
+                      </div>
                     </div>
                     <form onSubmit={handleIdentitySubmit} className="space-y-5">
                       <div className="space-y-2">

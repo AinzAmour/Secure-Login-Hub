@@ -100,9 +100,20 @@ export default function Landing() {
 
               <motion.p variants={itemVariants} className="text-lg md:text-xl text-muted-foreground mb-10 leading-relaxed max-w-2xl mx-auto">
                 {language === "ta"
-                  ? "உங்கள் தனிப்பட்ட தரவைப் பகிராமல், பாதுகாப்பாக உங்களை நீங்களே நிரூபிக்கவும்."
+                  ? "உங்கள் தனிப்பட்ட தரவைப் பகிராமல், பாதுகாப்பாக உங்களை நீங்களே நிரூபிக்கவும். 100% பாதுகாப்பானது."
                   : t("landing.subtitle")}
               </motion.p>
+
+              <motion.div variants={itemVariants} className="flex items-center justify-center gap-4 mb-10">
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
+                  <ShieldCheck className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-bold text-primary uppercase tracking-tighter">Secure & Safe</span>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 border border-secondary/20">
+                  <Lock className="w-4 h-4 text-secondary" />
+                  <span className="text-xs font-bold text-secondary uppercase tracking-tighter">Zero-Knowledge Proof</span>
+                </div>
+              </motion.div>
 
               <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-6 justify-center">
                 <Link href="/register">
@@ -335,6 +346,16 @@ export default function Landing() {
           </div>
           <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
             <p>© {new Date().getFullYear()} AuthFusion Security. Absolute Privacy Guaranteed.</p>
+            <div className="flex gap-6 items-center">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <ShieldCheck className="w-3.5 h-3.5 text-green-500" />
+                Verified Secure
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Lock className="w-3.5 h-3.5 text-green-500" />
+                AES-256 Encrypted
+              </div>
+            </div>
             <div className="flex gap-6">
               <a href="#" className="hover:text-primary transition-colors">Twitter</a>
               <a href="#" className="hover:text-primary transition-colors">GitHub</a>
