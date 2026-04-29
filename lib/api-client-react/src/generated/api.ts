@@ -19,6 +19,14 @@ import type {
 import type {
   ActivityEvent,
   EnrollFaceBody,
+  HandoffConsumeResponse,
+  HandoffCreateBody,
+  HandoffCreateResponse,
+  HandoffMobileBiometricOptions200,
+  HandoffMobileBiometricVerifyBody,
+  HandoffMobileInfo,
+  HandoffPollBody,
+  HandoffStatusResponse,
   HealthStatus,
   LoginChallengeResponse,
   LoginFaceBody,
@@ -1056,6 +1064,614 @@ export const useLogout = <
   TContext
 > => {
   return useMutation(getLogoutMutationOptions(options));
+};
+
+/**
+ * @summary Create a phone-handoff session and return a QR target URL
+ */
+export const getHandoffCreateUrl = () => {
+  return `/api/handoff/create`;
+};
+
+export const handoffCreate = async (
+  handoffCreateBody: HandoffCreateBody,
+  options?: RequestInit,
+): Promise<HandoffCreateResponse> => {
+  return customFetch<HandoffCreateResponse>(getHandoffCreateUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(handoffCreateBody),
+  });
+};
+
+export const getHandoffCreateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof handoffCreate>>,
+    TError,
+    { data: BodyType<HandoffCreateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof handoffCreate>>,
+  TError,
+  { data: BodyType<HandoffCreateBody> },
+  TContext
+> => {
+  const mutationKey = ["handoffCreate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof handoffCreate>>,
+    { data: BodyType<HandoffCreateBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return handoffCreate(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type HandoffCreateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof handoffCreate>>
+>;
+export type HandoffCreateMutationBody = BodyType<HandoffCreateBody>;
+export type HandoffCreateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a phone-handoff session and return a QR target URL
+ */
+export const useHandoffCreate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof handoffCreate>>,
+    TError,
+    { data: BodyType<HandoffCreateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof handoffCreate>>,
+  TError,
+  { data: BodyType<HandoffCreateBody> },
+  TContext
+> => {
+  return useMutation(getHandoffCreateMutationOptions(options));
+};
+
+/**
+ * @summary Poll the status of a handoff session from the desktop
+ */
+export const getHandoffPollUrl = () => {
+  return `/api/handoff/poll`;
+};
+
+export const handoffPoll = async (
+  handoffPollBody: HandoffPollBody,
+  options?: RequestInit,
+): Promise<HandoffStatusResponse> => {
+  return customFetch<HandoffStatusResponse>(getHandoffPollUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(handoffPollBody),
+  });
+};
+
+export const getHandoffPollMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof handoffPoll>>,
+    TError,
+    { data: BodyType<HandoffPollBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof handoffPoll>>,
+  TError,
+  { data: BodyType<HandoffPollBody> },
+  TContext
+> => {
+  const mutationKey = ["handoffPoll"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof handoffPoll>>,
+    { data: BodyType<HandoffPollBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return handoffPoll(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type HandoffPollMutationResult = NonNullable<
+  Awaited<ReturnType<typeof handoffPoll>>
+>;
+export type HandoffPollMutationBody = BodyType<HandoffPollBody>;
+export type HandoffPollMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Poll the status of a handoff session from the desktop
+ */
+export const useHandoffPoll = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof handoffPoll>>,
+    TError,
+    { data: BodyType<HandoffPollBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof handoffPoll>>,
+  TError,
+  { data: BodyType<HandoffPollBody> },
+  TContext
+> => {
+  return useMutation(getHandoffPollMutationOptions(options));
+};
+
+/**
+ * @summary Consume a completed handoff (for login flows this signs the user in)
+ */
+export const getHandoffConsumeUrl = () => {
+  return `/api/handoff/consume`;
+};
+
+export const handoffConsume = async (
+  handoffPollBody: HandoffPollBody,
+  options?: RequestInit,
+): Promise<HandoffConsumeResponse> => {
+  return customFetch<HandoffConsumeResponse>(getHandoffConsumeUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(handoffPollBody),
+  });
+};
+
+export const getHandoffConsumeMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof handoffConsume>>,
+    TError,
+    { data: BodyType<HandoffPollBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof handoffConsume>>,
+  TError,
+  { data: BodyType<HandoffPollBody> },
+  TContext
+> => {
+  const mutationKey = ["handoffConsume"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof handoffConsume>>,
+    { data: BodyType<HandoffPollBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return handoffConsume(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type HandoffConsumeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof handoffConsume>>
+>;
+export type HandoffConsumeMutationBody = BodyType<HandoffPollBody>;
+export type HandoffConsumeMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Consume a completed handoff (for login flows this signs the user in)
+ */
+export const useHandoffConsume = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof handoffConsume>>,
+    TError,
+    { data: BodyType<HandoffPollBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof handoffConsume>>,
+  TError,
+  { data: BodyType<HandoffPollBody> },
+  TContext
+> => {
+  return useMutation(getHandoffConsumeMutationOptions(options));
+};
+
+/**
+ * @summary Mobile-side info about an active handoff
+ */
+export const getHandoffMobileInfoUrl = (token: string) => {
+  return `/api/handoff/m/${token}`;
+};
+
+export const handoffMobileInfo = async (
+  token: string,
+  options?: RequestInit,
+): Promise<HandoffMobileInfo> => {
+  return customFetch<HandoffMobileInfo>(getHandoffMobileInfoUrl(token), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getHandoffMobileInfoQueryKey = (token: string) => {
+  return [`/api/handoff/m/${token}`] as const;
+};
+
+export const getHandoffMobileInfoQueryOptions = <
+  TData = Awaited<ReturnType<typeof handoffMobileInfo>>,
+  TError = ErrorType<unknown>,
+>(
+  token: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof handoffMobileInfo>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getHandoffMobileInfoQueryKey(token);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof handoffMobileInfo>>
+  > = ({ signal }) => handoffMobileInfo(token, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!token,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof handoffMobileInfo>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type HandoffMobileInfoQueryResult = NonNullable<
+  Awaited<ReturnType<typeof handoffMobileInfo>>
+>;
+export type HandoffMobileInfoQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Mobile-side info about an active handoff
+ */
+
+export function useHandoffMobileInfo<
+  TData = Awaited<ReturnType<typeof handoffMobileInfo>>,
+  TError = ErrorType<unknown>,
+>(
+  token: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof handoffMobileInfo>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getHandoffMobileInfoQueryOptions(token, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Submit a face descriptor from the mobile device
+ */
+export const getHandoffMobileFaceUrl = (token: string) => {
+  return `/api/handoff/m/${token}/face`;
+};
+
+export const handoffMobileFace = async (
+  token: string,
+  enrollFaceBody: EnrollFaceBody,
+  options?: RequestInit,
+): Promise<SimpleOk> => {
+  return customFetch<SimpleOk>(getHandoffMobileFaceUrl(token), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(enrollFaceBody),
+  });
+};
+
+export const getHandoffMobileFaceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof handoffMobileFace>>,
+    TError,
+    { token: string; data: BodyType<EnrollFaceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof handoffMobileFace>>,
+  TError,
+  { token: string; data: BodyType<EnrollFaceBody> },
+  TContext
+> => {
+  const mutationKey = ["handoffMobileFace"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof handoffMobileFace>>,
+    { token: string; data: BodyType<EnrollFaceBody> }
+  > = (props) => {
+    const { token, data } = props ?? {};
+
+    return handoffMobileFace(token, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type HandoffMobileFaceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof handoffMobileFace>>
+>;
+export type HandoffMobileFaceMutationBody = BodyType<EnrollFaceBody>;
+export type HandoffMobileFaceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Submit a face descriptor from the mobile device
+ */
+export const useHandoffMobileFace = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof handoffMobileFace>>,
+    TError,
+    { token: string; data: BodyType<EnrollFaceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof handoffMobileFace>>,
+  TError,
+  { token: string; data: BodyType<EnrollFaceBody> },
+  TContext
+> => {
+  return useMutation(getHandoffMobileFaceMutationOptions(options));
+};
+
+/**
+ * @summary Get WebAuthn options for the mobile device (registration or authentication)
+ */
+export const getHandoffMobileBiometricOptionsUrl = (token: string) => {
+  return `/api/handoff/m/${token}/biometric/options`;
+};
+
+export const handoffMobileBiometricOptions = async (
+  token: string,
+  options?: RequestInit,
+): Promise<HandoffMobileBiometricOptions200> => {
+  return customFetch<HandoffMobileBiometricOptions200>(
+    getHandoffMobileBiometricOptionsUrl(token),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getHandoffMobileBiometricOptionsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof handoffMobileBiometricOptions>>,
+    TError,
+    { token: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof handoffMobileBiometricOptions>>,
+  TError,
+  { token: string },
+  TContext
+> => {
+  const mutationKey = ["handoffMobileBiometricOptions"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof handoffMobileBiometricOptions>>,
+    { token: string }
+  > = (props) => {
+    const { token } = props ?? {};
+
+    return handoffMobileBiometricOptions(token, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type HandoffMobileBiometricOptionsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof handoffMobileBiometricOptions>>
+>;
+
+export type HandoffMobileBiometricOptionsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Get WebAuthn options for the mobile device (registration or authentication)
+ */
+export const useHandoffMobileBiometricOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof handoffMobileBiometricOptions>>,
+    TError,
+    { token: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof handoffMobileBiometricOptions>>,
+  TError,
+  { token: string },
+  TContext
+> => {
+  return useMutation(getHandoffMobileBiometricOptionsMutationOptions(options));
+};
+
+/**
+ * @summary Verify WebAuthn response from the mobile device
+ */
+export const getHandoffMobileBiometricVerifyUrl = (token: string) => {
+  return `/api/handoff/m/${token}/biometric/verify`;
+};
+
+export const handoffMobileBiometricVerify = async (
+  token: string,
+  handoffMobileBiometricVerifyBody: HandoffMobileBiometricVerifyBody,
+  options?: RequestInit,
+): Promise<SimpleOk> => {
+  return customFetch<SimpleOk>(getHandoffMobileBiometricVerifyUrl(token), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(handoffMobileBiometricVerifyBody),
+  });
+};
+
+export const getHandoffMobileBiometricVerifyMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof handoffMobileBiometricVerify>>,
+    TError,
+    { token: string; data: BodyType<HandoffMobileBiometricVerifyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof handoffMobileBiometricVerify>>,
+  TError,
+  { token: string; data: BodyType<HandoffMobileBiometricVerifyBody> },
+  TContext
+> => {
+  const mutationKey = ["handoffMobileBiometricVerify"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof handoffMobileBiometricVerify>>,
+    { token: string; data: BodyType<HandoffMobileBiometricVerifyBody> }
+  > = (props) => {
+    const { token, data } = props ?? {};
+
+    return handoffMobileBiometricVerify(token, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type HandoffMobileBiometricVerifyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof handoffMobileBiometricVerify>>
+>;
+export type HandoffMobileBiometricVerifyMutationBody =
+  BodyType<HandoffMobileBiometricVerifyBody>;
+export type HandoffMobileBiometricVerifyMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Verify WebAuthn response from the mobile device
+ */
+export const useHandoffMobileBiometricVerify = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof handoffMobileBiometricVerify>>,
+    TError,
+    { token: string; data: BodyType<HandoffMobileBiometricVerifyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof handoffMobileBiometricVerify>>,
+  TError,
+  { token: string; data: BodyType<HandoffMobileBiometricVerifyBody> },
+  TContext
+> => {
+  return useMutation(getHandoffMobileBiometricVerifyMutationOptions(options));
 };
 
 /**

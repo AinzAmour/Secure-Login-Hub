@@ -58,3 +58,21 @@ No email integration is configured, so OTPs are returned in the `/auth/register/
 - No emojis anywhere in the UI — the visual language is high-trust banking software (deep navy + emerald accent).
 - All API mutations call `queryClient.invalidateQueries({ queryKey: getGet*QueryKey() })` after success.
 - Backend never logs the OTP value or Aadhaar; it only logs hashed/redacted metadata.
+
+### Cross-device QR Handoff (added)
+
+Sentinel supports completing the **face** or **biometric** factor on a phone instead of the current device. This solves the "I'm signing in on my desktop but my desktop has no fingerprint sensor / front camera / WebAuthn-eligible authenticator" case.
+
+- **Schema**: `handoff_sessions` table (`lib/db/src/schema/users.ts`) — token hash, purpose (`register_face` / `register_biometric` / `login_face` / `login_biometric`), status (`pending` / `completed` / `consumed` / `failed` / `expired`), 5-minute TTL, optional `userId` and `challengeTokenHash`.
+- **Routes** (`artifacts/api-server/src/routes/handoff.ts`):
+  - `POST /api/handoff/create` — desktop creates a token; returns `mobileUrl = ${origin}/m/h/${token}`.
+  - `POST /api/handoff/poll` + `POST /api/handoff/consume` — desktop polls every 1.5s, consumes when status=completed (login flows sign the user in on the desktop session).
+  - `GET /api/handoff/m/:token` — mobile fetches purpose + user hint.
+  - `POST /api/handoff/m/:token/face` — mobile submits descriptor (enroll or auth match).
+  - `POST /api/handoff/m/:token/biometric/options` + `/verify` — mobile WebAuthn (works because both devices hit the same Replit domain → same RP ID).
+- **Components**:
+  - `src/components/HandoffQR.tsx` — desktop card: shows QR (`qrcode.react`), copyable URL, countdown timer, polls automatically.
+  - `src/pages/MobileHandoff.tsx` — phone landing page at `/m/h/:token`: runs `FaceCapture` for face flows or `startRegistration`/`startAuthentication` for biometric, then shows "return to your computer".
+- **UI integration**: Register wizard steps 4 & 5, Login stage 2, and Dashboard enroll modal each expose a "This device / Use my phone" toggle.
+- **App routing**: `App.tsx` skips the auth-redirect logic for `/m/h/*` paths so an unauthenticated phone visitor isn't bounced to `/login`.
+

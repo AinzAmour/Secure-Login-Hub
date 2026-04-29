@@ -16,6 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FaceCapture } from "@/components/FaceCapture";
 import { BiometricButton } from "@/components/BiometricButton";
+import { HandoffQR } from "@/components/HandoffQR";
+import { Smartphone, Monitor } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 import {
@@ -36,6 +38,7 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const [showAadhaar, setShowAadhaar] = useState(false);
   const [enrollModal, setEnrollModal] = useState<"face" | "biometric" | null>(null);
+  const [enrollMode, setEnrollMode] = useState<"device" | "phone">("device");
 
   const { data: userResponse, isLoading: userLoading } = useGetMe();
   const { data: security, isLoading: securityLoading } = useGetSecurityStatus();
@@ -302,38 +305,99 @@ export default function Dashboard() {
       </main>
 
       {/* Enrollment Modals */}
-      <Dialog open={enrollModal !== null} onOpenChange={(o) => !o && setEnrollModal(null)}>
+      <Dialog
+        open={enrollModal !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setEnrollModal(null);
+            setEnrollMode("device");
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
               {enrollModal === "face" ? "Enroll Face ID" : "Enroll Biometric Device"}
             </DialogTitle>
             <DialogDescription>
-              {enrollModal === "face" 
+              {enrollModal === "face"
                 ? "Scan your face to add it as a secure authentication factor."
-                : "Register this device's fingerprint or face scanner."}
+                : "Register a fingerprint or Face ID — on this device, or your phone."}
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="py-4">
-            {enrollModal === "face" && (
+
+          <div className="py-2">
+            <div className="flex p-1 bg-muted/60 rounded-lg mb-4">
+              <button
+                type="button"
+                onClick={() => setEnrollMode("device")}
+                className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2 rounded-md transition-colors ${
+                  enrollMode === "device"
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                data-testid="dash-tab-device"
+              >
+                <Monitor className="w-3.5 h-3.5" />
+                This device
+              </button>
+              <button
+                type="button"
+                onClick={() => setEnrollMode("phone")}
+                className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2 rounded-md transition-colors ${
+                  enrollMode === "phone"
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                data-testid="dash-tab-phone"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                Use my phone
+              </button>
+            </div>
+
+            {enrollModal === "face" && enrollMode === "device" && (
               <div className="max-w-[260px] mx-auto">
                 <FaceCapture onDescriptor={handleFaceEnrolled} mode="enroll" className="aspect-square" />
               </div>
             )}
-            
-            {enrollModal === "biometric" && (
+            {enrollModal === "face" && enrollMode === "phone" && (
+              <HandoffQR
+                purpose="register_face"
+                onComplete={() => {
+                  toast.success("Face enrolled from your phone");
+                  queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+                  queryClient.invalidateQueries({ queryKey: getGetSecurityStatusQueryKey() });
+                  setEnrollModal(null);
+                  setEnrollMode("device");
+                }}
+              />
+            )}
+
+            {enrollModal === "biometric" && enrollMode === "device" && (
               <div className="text-center space-y-6 pt-4">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
                   <Fingerprint className="w-8 h-8 text-primary" />
                 </div>
-                <BiometricButton 
+                <BiometricButton
                   mode="enroll"
                   optionsMutation={webauthnOptions}
                   verifyMutation={webauthnVerify}
                   onSuccess={onBiometricSuccess}
                 />
               </div>
+            )}
+            {enrollModal === "biometric" && enrollMode === "phone" && (
+              <HandoffQR
+                purpose="register_biometric"
+                onComplete={() => {
+                  toast.success("Phone biometric added");
+                  queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+                  queryClient.invalidateQueries({ queryKey: getGetSecurityStatusQueryKey() });
+                  setEnrollModal(null);
+                  setEnrollMode("device");
+                }}
+              />
             )}
           </div>
         </DialogContent>

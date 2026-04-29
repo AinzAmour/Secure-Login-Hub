@@ -204,6 +204,135 @@ export const LogoutResponse = zod.object({
 });
 
 /**
+ * @summary Create a phone-handoff session and return a QR target URL
+ */
+export const HandoffCreateBody = zod.object({
+  purpose: zod.enum([
+    "register_face",
+    "register_biometric",
+    "login_face",
+    "login_biometric",
+  ]),
+  challengeToken: zod
+    .string()
+    .nullish()
+    .describe("Required for login_\* purposes"),
+});
+
+export const HandoffCreateResponse = zod.object({
+  handoffId: zod.string(),
+  token: zod.string(),
+  mobileUrl: zod.string(),
+  expiresInSeconds: zod.number(),
+});
+
+/**
+ * @summary Poll the status of a handoff session from the desktop
+ */
+export const HandoffPollBody = zod.object({
+  handoffId: zod.string(),
+  token: zod.string(),
+});
+
+export const HandoffPollResponse = zod.object({
+  status: zod
+    .string()
+    .describe("pending, completed, failed, consumed, expired"),
+  errorMessage: zod.string().nullish(),
+});
+
+/**
+ * @summary Consume a completed handoff (for login flows this signs the user in)
+ */
+export const HandoffConsumeBody = zod.object({
+  handoffId: zod.string(),
+  token: zod.string(),
+});
+
+export const HandoffConsumeResponse = zod.object({
+  ok: zod.boolean(),
+  user: zod
+    .object({
+      id: zod.string(),
+      email: zod.string(),
+      fullName: zod.string(),
+      aadhaarMasked: zod
+        .string()
+        .describe("Aadhaar number with all but the last 4 digits masked"),
+      hasFaceEnrolled: zod.boolean(),
+      hasBiometricEnrolled: zod.boolean(),
+      createdAt: zod.coerce.date(),
+    })
+    .nullish(),
+});
+
+/**
+ * @summary Mobile-side info about an active handoff
+ */
+export const HandoffMobileInfoParams = zod.object({
+  token: zod.coerce.string(),
+});
+
+export const HandoffMobileInfoResponse = zod.object({
+  purpose: zod.enum([
+    "register_face",
+    "register_biometric",
+    "login_face",
+    "login_biometric",
+  ]),
+  status: zod.string(),
+  expired: zod.boolean(),
+  userHint: zod
+    .object({
+      fullName: zod.string(),
+      email: zod.string(),
+    })
+    .nullish(),
+});
+
+/**
+ * @summary Submit a face descriptor from the mobile device
+ */
+export const HandoffMobileFaceParams = zod.object({
+  token: zod.coerce.string(),
+});
+
+export const HandoffMobileFaceBody = zod.object({
+  faceDescriptor: zod.array(zod.number()),
+});
+
+export const HandoffMobileFaceResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+/**
+ * @summary Get WebAuthn options for the mobile device (registration or authentication)
+ */
+export const HandoffMobileBiometricOptionsParams = zod.object({
+  token: zod.coerce.string(),
+});
+
+export const HandoffMobileBiometricOptionsResponse = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
+
+/**
+ * @summary Verify WebAuthn response from the mobile device
+ */
+export const HandoffMobileBiometricVerifyParams = zod.object({
+  token: zod.coerce.string(),
+});
+
+export const HandoffMobileBiometricVerifyBody = zod.object({
+  credential: zod.record(zod.string(), zod.unknown()),
+});
+
+export const HandoffMobileBiometricVerifyResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+/**
  * @summary Get the current authenticated user profile
  */
 export const GetMeResponse = zod.object({

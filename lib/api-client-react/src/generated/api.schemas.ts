@@ -152,3 +152,64 @@ export interface WebauthnRegisterVerifyBody {
 export interface WebauthnAuthOptions {
   [key: string]: unknown;
 }
+
+export type HandoffPurpose =
+  (typeof HandoffPurpose)[keyof typeof HandoffPurpose];
+
+export const HandoffPurpose = {
+  register_face: "register_face",
+  register_biometric: "register_biometric",
+  login_face: "login_face",
+  login_biometric: "login_biometric",
+} as const;
+
+export interface HandoffCreateBody {
+  purpose: HandoffPurpose;
+  /** Required for login_* purposes */
+  challengeToken?: string | null;
+}
+
+export interface HandoffCreateResponse {
+  handoffId: string;
+  token: string;
+  mobileUrl: string;
+  expiresInSeconds: number;
+}
+
+export interface HandoffPollBody {
+  handoffId: string;
+  token: string;
+}
+
+export interface HandoffStatusResponse {
+  /** pending, completed, failed, consumed, expired */
+  status: string;
+  errorMessage?: string | null;
+}
+
+export interface HandoffConsumeResponse {
+  ok: boolean;
+  user?: User | null;
+}
+
+export type HandoffMobileInfoUserHint = {
+  fullName: string;
+  email: string;
+} | null;
+
+export interface HandoffMobileInfo {
+  purpose: HandoffPurpose;
+  status: string;
+  expired: boolean;
+  userHint?: HandoffMobileInfoUserHint;
+}
+
+export type HandoffMobileBiometricVerifyBodyCredential = {
+  [key: string]: unknown;
+};
+
+export interface HandoffMobileBiometricVerifyBody {
+  credential: HandoffMobileBiometricVerifyBodyCredential;
+}
+
+export type HandoffMobileBiometricOptions200 = { [key: string]: unknown };

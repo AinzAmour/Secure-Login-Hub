@@ -10,6 +10,7 @@ import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Dashboard from "@/pages/Dashboard";
+import MobileHandoff from "@/pages/MobileHandoff";
 import NotFound from "@/pages/not-found";
 import { Loader2 } from "lucide-react";
 
@@ -17,13 +18,19 @@ const queryClient = new QueryClient();
 
 function AppRoutes() {
   const [location, setLocation] = useLocation();
-  const { data: user, isLoading, error } = useGetMe({ 
-    query: { retry: false, queryKey: getGetMeQueryKey() } 
+  const isMobileHandoff = location.startsWith("/m/h/");
+  const { data: user, isLoading, error } = useGetMe({
+    query: {
+      retry: false,
+      queryKey: getGetMeQueryKey(),
+      enabled: !isMobileHandoff,
+    },
   });
 
   useEffect(() => {
+    if (isMobileHandoff) return;
     if (isLoading) return;
-    
+
     // Redirect logic
     const isAuthRoute = location === "/login" || location === "/register";
     const isProtectedRoute = location.startsWith("/dashboard");
@@ -33,9 +40,9 @@ function AppRoutes() {
     } else if (error && isProtectedRoute) {
       setLocation("/login");
     }
-  }, [user, isLoading, error, location, setLocation]);
+  }, [user, isLoading, error, location, setLocation, isMobileHandoff]);
 
-  if (isLoading) {
+  if (!isMobileHandoff && isLoading) {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -49,6 +56,7 @@ function AppRoutes() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/dashboard" component={Dashboard} />
+      <Route path="/m/h/:token" component={MobileHandoff} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -62,6 +70,7 @@ function App() {
           <AppRoutes />
         </WouterRouter>
         <Toaster />
+        <SonnerToaster richColors position="top-center" />
       </TooltipProvider>
     </QueryClientProvider>
   );

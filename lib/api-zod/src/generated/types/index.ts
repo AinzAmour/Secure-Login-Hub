@@ -8,6 +8,17 @@
 
 export * from "./activityEvent";
 export * from "./enrollFaceBody";
+export * from "./handoffConsumeResponse";
+export * from "./handoffCreateBody";
+export * from "./handoffCreateResponse";
+export * from "./handoffMobileBiometricOptions200";
+export * from "./handoffMobileBiometricVerifyBody";
+export * from "./handoffMobileBiometricVerifyBodyCredential";
+export * from "./handoffMobileInfo";
+export * from "./handoffMobileInfoUserHint";
+export * from "./handoffPollBody";
+export * from "./handoffPurpose";
+export * from "./handoffStatusResponse";
 export * from "./healthStatus";
 export * from "./loginChallengeResponse";
 export * from "./loginChallengeResponseUserHint";

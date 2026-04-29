@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
-import { Loader2, Fingerprint, ScanFace, ArrowLeft } from "lucide-react";
+import { Loader2, Fingerprint, ScanFace, ArrowLeft, Smartphone } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { HandoffQR } from "@/components/HandoffQR";
 
 import {
   useLoginLookup,
@@ -22,6 +23,8 @@ import {
   LoginChallengeResponse
 } from "@workspace/api-client-react";
 
+type Factor = "biometric" | "face" | "face_phone" | "biometric_phone";
+
 export default function Login() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -31,7 +34,7 @@ export default function Login() {
   const [mpin, setMpin] = useState("");
   
   const [challengeData, setChallengeData] = useState<LoginChallengeResponse | null>(null);
-  const [selectedFactor, setSelectedFactor] = useState<"biometric" | "face" | null>(null);
+  const [selectedFactor, setSelectedFactor] = useState<Factor | null>(null);
 
   const lookup = useLoginLookup();
   const loginFace = useLoginFace();
@@ -171,10 +174,34 @@ export default function Login() {
                             Cancel
                           </Button>
                         </div>
+                      ) : selectedFactor === "face_phone" ? (
+                        <div className="text-left animate-in fade-in zoom-in duration-300">
+                          <HandoffQR
+                            purpose="login_face"
+                            challengeToken={challengeData.challengeToken}
+                            onComplete={() => {
+                              queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+                              setLocation("/dashboard");
+                            }}
+                            onCancel={() => setSelectedFactor(null)}
+                          />
+                        </div>
+                      ) : selectedFactor === "biometric_phone" ? (
+                        <div className="text-left animate-in fade-in zoom-in duration-300">
+                          <HandoffQR
+                            purpose="login_biometric"
+                            challengeToken={challengeData.challengeToken}
+                            onComplete={() => {
+                              queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+                              setLocation("/dashboard");
+                            }}
+                            onCancel={() => setSelectedFactor(null)}
+                          />
+                        </div>
                       ) : (
                         <>
                           {challengeData.availableFactors.includes("biometric") && (
-                            <BiometricButton 
+                            <BiometricButton
                               mode="auth"
                               challengeToken={challengeData.challengeToken}
                               optionsMutation={webauthnOptions}
@@ -182,18 +209,54 @@ export default function Login() {
                               onSuccess={handleBiometricSuccess}
                             />
                           )}
-                          
+
                           {challengeData.availableFactors.includes("face") && (
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               className="w-full h-14 text-base"
                               onClick={() => setSelectedFactor("face")}
+                              data-testid="button-face-here"
                             >
                               <ScanFace className="mr-2 h-5 w-5" />
                               Continue with Face ID
                             </Button>
                           )}
-                          
+
+                          {(challengeData.availableFactors.includes("face") ||
+                            challengeData.availableFactors.includes("biometric")) && (
+                            <div className="pt-2">
+                              <div className="flex items-center gap-3 my-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+                                <span className="flex-1 h-px bg-border" />
+                                Or use your phone
+                                <span className="flex-1 h-px bg-border" />
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                {challengeData.availableFactors.includes("face") && (
+                                  <Button
+                                    variant="outline"
+                                    className="h-12 text-xs"
+                                    onClick={() => setSelectedFactor("face_phone")}
+                                    data-testid="button-face-phone"
+                                  >
+                                    <Smartphone className="w-4 h-4 mr-1.5" />
+                                    Face on phone
+                                  </Button>
+                                )}
+                                {challengeData.availableFactors.includes("biometric") && (
+                                  <Button
+                                    variant="outline"
+                                    className="h-12 text-xs"
+                                    onClick={() => setSelectedFactor("biometric_phone")}
+                                    data-testid="button-biometric-phone"
+                                  >
+                                    <Smartphone className="w-4 h-4 mr-1.5" />
+                                    Biometric on phone
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
                           {challengeData.availableFactors.length === 0 && (
                             <div className="p-4 bg-amber-50 text-amber-900 rounded-lg text-sm">
                               No second factors enrolled. Please contact support.

@@ -225,6 +225,152 @@ paths:
               schema:
                 $ref: "#/components/schemas/SimpleOk"
 
+  /handoff/create:
+    post:
+      operationId: handoffCreate
+      tags: [auth]
+      summary: Create a phone-handoff session and return a QR target URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HandoffCreateBody"
+      responses:
+        "200":
+          description: Handoff created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HandoffCreateResponse"
+
+  /handoff/poll:
+    post:
+      operationId: handoffPoll
+      tags: [auth]
+      summary: Poll the status of a handoff session from the desktop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HandoffPollBody"
+      responses:
+        "200":
+          description: Handoff status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HandoffStatusResponse"
+
+  /handoff/consume:
+    post:
+      operationId: handoffConsume
+      tags: [auth]
+      summary: Consume a completed handoff (for login flows this signs the user in)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HandoffPollBody"
+      responses:
+        "200":
+          description: Handoff consumed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HandoffConsumeResponse"
+
+  /handoff/m/{token}:
+    get:
+      operationId: handoffMobileInfo
+      tags: [auth]
+      summary: Mobile-side info about an active handoff
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Handoff info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HandoffMobileInfo"
+
+  /handoff/m/{token}/face:
+    post:
+      operationId: handoffMobileFace
+      tags: [auth]
+      summary: Submit a face descriptor from the mobile device
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrollFaceBody"
+      responses:
+        "200":
+          description: Submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimpleOk"
+
+  /handoff/m/{token}/biometric/options:
+    post:
+      operationId: handoffMobileBiometricOptions
+      tags: [auth]
+      summary: Get WebAuthn options for the mobile device (registration or authentication)
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: WebAuthn options
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /handoff/m/{token}/biometric/verify:
+    post:
+      operationId: handoffMobileBiometricVerify
+      tags: [auth]
+      summary: Verify WebAuthn response from the mobile device
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HandoffMobileBiometricVerifyBody"
+      responses:
+        "200":
+          description: Verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimpleOk"
+
   /account/me:
     get:
       operationId: getMe
@@ -512,3 +658,94 @@ components:
       type: object
       additionalProperties: true
       description: Raw SimpleWebAuthn authentication options JSON
+
+    HandoffPurpose:
+      type: string
+      enum:
+        - register_face
+        - register_biometric
+        - login_face
+        - login_biometric
+
+    HandoffCreateBody:
+      type: object
+      properties:
+        purpose:
+          $ref: "#/components/schemas/HandoffPurpose"
+        challengeToken:
+          type: string
+          nullable: true
+          description: Required for login_* purposes
+      required: [purpose]
+
+    HandoffCreateResponse:
+      type: object
+      properties:
+        handoffId:
+          type: string
+        token:
+          type: string
+        mobileUrl:
+          type: string
+        expiresInSeconds:
+          type: integer
+      required: [handoffId, token, mobileUrl, expiresInSeconds]
+
+    HandoffPollBody:
+      type: object
+      properties:
+        handoffId:
+          type: string
+        token:
+          type: string
+      required: [handoffId, token]
+
+    HandoffStatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          description: pending, completed, failed, consumed, expired
+        errorMessage:
+          type: string
+          nullable: true
+      required: [status]
+
+    HandoffConsumeResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        user:
+          allOf:
+            - $ref: "#/components/schemas/User"
+          nullable: true
+      required: [ok]
+
+    HandoffMobileInfo:
+      type: object
+      properties:
+        purpose:
+          $ref: "#/components/schemas/HandoffPurpose"
+        status:
+          type: string
+        expired:
+          type: boolean
+        userHint:
+          type: object
+          nullable: true
+          properties:
+            fullName:
+              type: string
+            email:
+              type: string
+          required: [fullName, email]
+      required: [purpose, status, expired]
+
+    HandoffMobileBiometricVerifyBody:
+      type: object
+      properties:
+        credential:
+          type: object
+          additionalProperties: true
+      required: [credential]

@@ -93,3 +93,24 @@ export const activityEventsTable = pgTable("activity_events", {
 });
 
 export type ActivityEvent = typeof activityEventsTable.$inferSelect;
+
+export const handoffSessionsTable = pgTable("handoff_sessions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tokenHash: text("token_hash").notNull().unique(),
+  purpose: text("purpose").notNull(),
+  userId: uuid("user_id").references(() => usersTable.id, {
+    onDelete: "cascade",
+  }),
+  challengeTokenHash: text("challenge_token_hash"),
+  status: text("status").notNull().default("pending"),
+  errorMessage: text("error_message"),
+  webauthnChallenge: text("webauthn_challenge"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export type HandoffSession = typeof handoffSessionsTable.$inferSelect;

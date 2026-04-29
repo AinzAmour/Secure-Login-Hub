@@ -11,8 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
-import { ShieldCheck, Loader2, ArrowRight, Mail, Copy, Fingerprint, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, Loader2, ArrowRight, Mail, Copy, Fingerprint, CheckCircle2, Smartphone, Monitor } from "lucide-react";
 import { formatAadhaar, unformatAadhaar } from "@/lib/formatAadhaar";
+import { HandoffQR } from "@/components/HandoffQR";
 
 import {
   useRegisterStart,
@@ -47,6 +48,8 @@ export default function Register() {
 
   const [faceEnrolled, setFaceEnrolled] = useState(false);
   const [biometricEnrolled, setBiometricEnrolled] = useState(false);
+  const [faceMode, setFaceMode] = useState<"device" | "phone">("device");
+  const [bioMode, setBioMode] = useState<"device" | "phone">("device");
 
   // Mutations
   const registerStart = useRegisterStart();
@@ -347,9 +350,26 @@ export default function Register() {
                       <p className="text-sm text-muted-foreground mt-2">Used as an extra factor to access your vault. No images leave your device.</p>
                     </div>
 
-                    <div className="max-w-[280px] mx-auto mb-6">
-                      <FaceCapture onDescriptor={handleFaceComplete} mode="enroll" className="aspect-square" />
-                    </div>
+                    <DeviceModeTabs value={faceMode} onChange={setFaceMode} className="mb-5" />
+
+                    {faceMode === "device" ? (
+                      <div className="max-w-[280px] mx-auto mb-6">
+                        <FaceCapture onDescriptor={handleFaceComplete} mode="enroll" className="aspect-square" />
+                      </div>
+                    ) : (
+                      <div className="mb-6">
+                        <HandoffQR
+                          purpose="register_face"
+                          onComplete={() => {
+                            setFaceEnrolled(true);
+                            toast.success("Face enrolled from your phone");
+                            queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+                            queryClient.invalidateQueries({ queryKey: getGetSecurityStatusQueryKey() });
+                            setTimeout(() => setCurrentStep(4), 1200);
+                          }}
+                        />
+                      </div>
+                    )}
 
                     <div className="flex justify-center">
                       <Button variant="ghost" onClick={() => setCurrentStep(4)} className="text-muted-foreground">
@@ -369,8 +389,8 @@ export default function Register() {
                       <Fingerprint className="w-8 h-8 text-primary" />
                     </div>
                     <h2 className="text-2xl font-semibold tracking-tight mb-2">Device Biometrics</h2>
-                    <p className="text-sm text-muted-foreground mb-8">
-                      Use your device's built-in biometric sensor (Touch ID, Face ID, or Windows Hello) for faster, secure sign-ins.
+                    <p className="text-sm text-muted-foreground mb-6">
+                      Add a fingerprint or Face ID factor — from this device, or by scanning a QR with your phone.
                     </p>
 
                     {biometricEnrolled ? (
@@ -379,17 +399,35 @@ export default function Register() {
                         <p className="font-medium">Device enrolled</p>
                       </div>
                     ) : (
-                      <BiometricButton 
-                        mode="enroll" 
-                        optionsMutation={webauthnOptions} 
-                        verifyMutation={webauthnVerify}
-                        onSuccess={() => {
-                          setBiometricEnrolled(true);
-                          toast.success("Biometric enrolled securely");
-                          setTimeout(() => setCurrentStep(5), 1000);
-                        }}
-                        className="mb-4"
-                      />
+                      <>
+                        <DeviceModeTabs value={bioMode} onChange={setBioMode} className="mb-5 text-left" />
+                        {bioMode === "device" ? (
+                          <BiometricButton
+                            mode="enroll"
+                            optionsMutation={webauthnOptions}
+                            verifyMutation={webauthnVerify}
+                            onSuccess={() => {
+                              setBiometricEnrolled(true);
+                              toast.success("Biometric enrolled securely");
+                              setTimeout(() => setCurrentStep(5), 1000);
+                            }}
+                            className="mb-4"
+                          />
+                        ) : (
+                          <div className="mb-4 text-left">
+                            <HandoffQR
+                              purpose="register_biometric"
+                              onComplete={() => {
+                                setBiometricEnrolled(true);
+                                toast.success("Phone biometric enrolled");
+                                queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+                                queryClient.invalidateQueries({ queryKey: getGetSecurityStatusQueryKey() });
+                                setTimeout(() => setCurrentStep(5), 1200);
+                              }}
+                            />
+                          </div>
+                        )}
+                      </>
                     )}
 
                     <Button variant="ghost" onClick={() => setCurrentStep(5)} className="text-muted-foreground w-full">
@@ -440,6 +478,43 @@ export default function Register() {
           </AnimatePresence>
         </div>
       </main>
+    </div>
+  );
+}
+
+function DeviceModeTabs({
+  value,
+  onChange,
+  className,
+}: {
+  value: "device" | "phone";
+  onChange: (v: "device" | "phone") => void;
+  className?: string;
+}) {
+  return (
+    <div className={`flex p-1 bg-muted/60 rounded-lg ${className ?? ""}`}>
+      <button
+        type="button"
+        onClick={() => onChange("device")}
+        className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2 rounded-md transition-colors ${
+          value === "device" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+        }`}
+        data-testid="tab-device"
+      >
+        <Monitor className="w-3.5 h-3.5" />
+        This device
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("phone")}
+        className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2 rounded-md transition-colors ${
+          value === "phone" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+        }`}
+        data-testid="tab-phone"
+      >
+        <Smartphone className="w-3.5 h-3.5" />
+        Use my phone
+      </button>
     </div>
   );
 }
