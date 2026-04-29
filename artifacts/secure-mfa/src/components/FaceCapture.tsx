@@ -34,12 +34,15 @@ export const FaceCapture: React.FC<FaceCaptureProps> = ({
 
   useEffect(() => {
     if (passed) {
+      // Stop the camera immediately once passed
+      stop()
+      
       // For Phase 2, we provide a placeholder descriptor to satisfy the backend
       // Face Recognition will be upgraded in Phase 4
       const dummyDescriptor = new Array(128).fill(0).map(() => Math.random())
       setTimeout(() => onDescriptor(dummyDescriptor), 1500)
     }
-  }, [passed, onDescriptor])
+  }, [passed, onDescriptor, stop])
 
   return (
     <div 

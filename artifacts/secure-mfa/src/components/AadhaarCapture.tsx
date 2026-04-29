@@ -55,13 +55,13 @@ export function AadhaarCapture({ onCapture, className }: AadhaarCaptureProps) {
   }, []);
 
   useEffect(() => {
-    if (mode === "camera") {
+    if (mode === "camera" && !showManual) {
       startCamera();
     } else {
       stopCamera();
     }
     return () => stopCamera();
-  }, [mode, startCamera, stopCamera]);
+  }, [mode, showManual, startCamera, stopCamera]);
 
   const runOCR = async (imageSrc: string) => {
     setIsProcessing(true);

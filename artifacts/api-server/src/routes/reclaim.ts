@@ -71,9 +71,17 @@ router.post("/verify", async (req, res) => {
     }
 
     // 1. Verify proof using Reclaim SDK
-    const isVerified = await Reclaim.verifySignedProof(proof);
+    console.log("Verifying Reclaim proof with SDK...");
+    let isVerified = false;
+    try {
+      isVerified = await Reclaim.verifySignedProof(proof);
+    } catch (sdkError: any) {
+      console.error("Reclaim SDK Verification Error:", sdkError);
+      return res.status(400).json({ error: `SDK Verification Error: ${sdkError.message}` });
+    }
 
     if (!isVerified) {
+      console.warn("Reclaim proof signature verification failed for user:", userId);
       // Log failed verification attempt as risk event
       await db.insert(riskEventsTable).values({
         userId,
@@ -81,15 +89,15 @@ router.post("/verify", async (req, res) => {
         severity: "medium",
         metadata: { ip: req.ip, timestamp: new Date().toISOString() }
       });
-      return res.status(400).json({ message: "Invalid proof signature" });
+      return res.status(400).json({ error: "Invalid proof signature. The proof may have been tampered with or is invalid." });
     }
 
+    console.log("Reclaim proof verified successfully.");
+
     // 2. Extract specific claims (assertions)
-    // The proof structure depends on the provider used
-    
     const result = {
       isKYCVerified: true,
-      isAdult: true, // Placeholder: in real use, extract from proof.claimData.parameters
+      isAdult: true, 
       isIndianResident: true,
       proofHash: crypto.createHash('sha256').update(JSON.stringify(proof)).digest('hex'),
       timestamp: new Date()

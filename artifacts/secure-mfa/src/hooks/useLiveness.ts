@@ -4,6 +4,7 @@ import { detectChallenge, type Challenge } from '@/lib/liveness/challenges'
 import type { FaceLandmarker } from '@mediapipe/tasks-vision'
 
 const CHALLENGES: Challenge[] = ['smile', 'blink', 'turn_left', 'turn_right']
+const STABILITY_THRESHOLD = 8 // Number of consecutive frames the challenge must be held
 
 export function useLiveness() {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -13,31 +14,61 @@ export function useLiveness() {
   const [passed, setPassed] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const stabilityCounterRef = useRef(0)
+
+  const stop = useCallback(() => {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = 0
+    }
+    const stream = videoRef.current?.srcObject as MediaStream | null
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop())
+      videoRef.current!.srcObject = null
+    }
+  }, [])
 
   const start = useCallback(async () => {
+    // Prevent multiple starts
+    if (loading) return
+    stop()
+    
     setLoading(true)
     setError(null)
+    setPassed(false)
+    stabilityCounterRef.current = 0
+
     try {
-      landmarkerRef.current = await initFaceLandmarker()
+      if (!landmarkerRef.current) {
+        landmarkerRef.current = await initFaceLandmarker()
+      }
+      
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: 'user' },
+        video: { 
+          width: { ideal: 640 }, 
+          height: { ideal: 480 }, 
+          facingMode: 'user' 
+        },
       })
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         await videoRef.current.play()
       }
+      
       // Pick random challenge
       const challenge = CHALLENGES[Math.floor(Math.random() * CHALLENGES.length)]
       setCurrentChallenge(challenge)
       runLoop(challenge)
     } catch (err) {
+      console.error("Liveness Start Error:", err)
       setError(err instanceof Error ? err.message : 'Camera access denied')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [loading, stop])
 
-  function runLoop(challenge: Challenge) {
+  const runLoop = useCallback((challenge: Challenge) => {
     const video = videoRef.current
     const landmarker = landmarkerRef.current
     if (!video || !landmarker) return
@@ -46,24 +77,27 @@ export function useLiveness() {
       if (video.readyState >= 2) {
         const result = landmarker.detectForVideo(video, performance.now())
         if (detectChallenge(result, challenge)) {
-          cancelAnimationFrame(rafRef.current)
-          setPassed(true)
-          return
+          stabilityCounterRef.current += 1
+          
+          if (stabilityCounterRef.current >= STABILITY_THRESHOLD) {
+            cancelAnimationFrame(rafRef.current)
+            rafRef.current = 0
+            setPassed(true)
+            return
+          }
+        } else {
+          // Reset if they stop doing the challenge
+          stabilityCounterRef.current = Math.max(0, stabilityCounterRef.current - 1)
         }
       }
       rafRef.current = requestAnimationFrame(tick)
     }
     rafRef.current = requestAnimationFrame(tick)
-  }
-
-  useEffect(() => {
-    return () => {
-      cancelAnimationFrame(rafRef.current)
-      // Stop camera on unmount
-      const stream = videoRef.current?.srcObject as MediaStream | null
-      stream?.getTracks().forEach(t => t.stop())
-    }
   }, [])
 
-  return { videoRef, currentChallenge, passed, loading, error, start }
+  useEffect(() => {
+    return () => stop()
+  }, [stop])
+
+  return { videoRef, currentChallenge, passed, loading, error, start, stop }
 }
