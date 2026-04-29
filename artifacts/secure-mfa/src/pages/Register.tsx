@@ -1,17 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Logo } from "@/components/Logo";
 import { ProgressSteps } from "@/components/ProgressSteps";
 import { FaceCapture } from "@/components/FaceCapture";
 import { BiometricButton } from "@/components/BiometricButton";
+import { PhoneOtpStep } from "@/components/PhoneOtpStep";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { toast } from "sonner";
-import { ShieldCheck, Loader2, ArrowRight, Mail, Copy, Fingerprint, CheckCircle2, Smartphone, Monitor } from "lucide-react";
+import { ShieldCheck, Loader2, ArrowRight, Mail, Copy, Fingerprint, CheckCircle2, Smartphone, Monitor, Gamepad2 } from "lucide-react";
 import { formatAadhaar, unformatAadhaar } from "@/lib/formatAadhaar";
 import { HandoffQR } from "@/components/HandoffQR";
 
@@ -28,12 +29,16 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 
-const STEPS = ["Email", "OTP", "Identity", "Face", "Biometric", "Complete"];
+const STEPS = ["Email", "OTP", "Phone", "Identity", "Face", "Biometric", "Complete"];
 
 export default function Register() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(0);
+
+  const goToStep = useCallback((step: number) => {
+    setCurrentStep(step);
+  }, []);
 
   // State
   const [email, setEmail] = useState("");
@@ -90,7 +95,7 @@ export default function Register() {
       verifyOtp.mutateAsync({ data: { email, otp } })
         .then((res) => {
           setRegistrationToken(res.registrationToken);
-          setCurrentStep(2);
+          setCurrentStep(2); // Go to Phone OTP step
         })
         .catch((err) => {
           toast.error(err.message || "Invalid OTP");
@@ -98,6 +103,8 @@ export default function Register() {
         });
     }
   }, [otp, currentStep]);
+
+  const handlePhoneVerified = useCallback(() => goToStep(3), [goToStep]);
 
   const handleIdentitySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,21 +136,21 @@ export default function Register() {
         }
       });
       queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-      setCurrentStep(3);
+      setCurrentStep(4); // Go to Face step
     } catch (err: any) {
       toast.error(err.message || "Registration failed");
     }
   };
 
-  const handleFaceComplete = async (descriptor: number[]) => {
+  const handleFaceComplete = useCallback(async (descriptor: number[]) => {
     try {
       await enrollFace.mutateAsync({ data: { faceDescriptor: descriptor } });
       setFaceEnrolled(true);
-      setTimeout(() => setCurrentStep(4), 1500);
+      setTimeout(() => goToStep(5), 1500); // Go to Biometric step
     } catch (err: any) {
       toast.error(err.message || "Face enrollment failed");
     }
-  };
+  }, [enrollFace, goToStep]);
 
   const finishRegistration = () => {
     queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
@@ -153,7 +160,7 @@ export default function Register() {
   };
 
   useEffect(() => {
-    if (currentStep === 5) {
+    if (currentStep === 6) {
       queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
     }
   }, [currentStep, queryClient]);
@@ -165,7 +172,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-muted/30">
+    <div className="min-h-[100dvh] flex flex-col bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-background to-background">
       <header className="p-6">
         <Link href="/">
           <Logo />
@@ -177,12 +184,13 @@ export default function Register() {
 
         <div className="w-full max-w-md relative">
           <AnimatePresence mode="wait">
+            {/* Step 0: Email */}
             {currentStep === 0 && (
               <motion.div key="step0" variants={variants} initial="initial" animate="animate" exit="exit">
-                <Card>
+                <Card className="border-white/10 shadow-2xl backdrop-blur-xl bg-background/60">
                   <CardContent className="pt-6">
                     <div className="text-center mb-6">
-                      <h2 className="text-2xl font-semibold tracking-tight">Create your vault</h2>
+                      <h2 className="text-2xl font-semibold tracking-tight">Create your AuthFusion Vault</h2>
                       <p className="text-sm text-muted-foreground mt-2">Enter your email to begin setup.</p>
                     </div>
                     <form onSubmit={handleEmailSubmit} className="space-y-4">
@@ -212,9 +220,10 @@ export default function Register() {
               </motion.div>
             )}
 
+            {/* Step 1: Email OTP */}
             {currentStep === 1 && (
               <motion.div key="step1" variants={variants} initial="initial" animate="animate" exit="exit">
-                <Card>
+                <Card className="border-white/10 shadow-2xl backdrop-blur-xl bg-background/60">
                   <CardContent className="pt-6">
                     <div className="text-center mb-6 flex flex-col items-center">
                       <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
@@ -270,9 +279,21 @@ export default function Register() {
               </motion.div>
             )}
 
+            {/* Step 2: Phone OTP (NEW) */}
             {currentStep === 2 && (
               <motion.div key="step2" variants={variants} initial="initial" animate="animate" exit="exit">
-                <Card>
+                <Card className="border-white/10 shadow-2xl backdrop-blur-xl bg-background/60">
+                  <CardContent className="pt-6">
+                    <PhoneOtpStep onVerified={handlePhoneVerified} />
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* Step 3: Identity Details (was step 2) */}
+            {currentStep === 3 && (
+              <motion.div key="step3" variants={variants} initial="initial" animate="animate" exit="exit">
+                <Card className="border-white/10 shadow-2xl backdrop-blur-xl bg-background/60">
                   <CardContent className="pt-6">
                     <div className="text-center mb-6">
                       <h2 className="text-2xl font-semibold tracking-tight">Identity Details</h2>
@@ -341,9 +362,10 @@ export default function Register() {
               </motion.div>
             )}
 
-            {currentStep === 3 && (
-              <motion.div key="step3" variants={variants} initial="initial" animate="animate" exit="exit">
-                <Card>
+            {/* Step 4: Face Enrollment (was step 3) */}
+            {currentStep === 4 && (
+              <motion.div key="step4" variants={variants} initial="initial" animate="animate" exit="exit">
+                <Card className="border-white/10 shadow-2xl backdrop-blur-xl bg-background/60">
                   <CardContent className="pt-6">
                     <div className="text-center mb-6">
                       <h2 className="text-2xl font-semibold tracking-tight">Enroll Face ID</h2>
@@ -365,14 +387,14 @@ export default function Register() {
                             toast.success("Face enrolled from your phone");
                             queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
                             queryClient.invalidateQueries({ queryKey: getGetSecurityStatusQueryKey() });
-                            setTimeout(() => setCurrentStep(4), 1200);
+                            setTimeout(() => goToStep(5), 1200);
                           }}
                         />
                       </div>
                     )}
 
                     <div className="flex justify-center">
-                      <Button variant="ghost" onClick={() => setCurrentStep(4)} className="text-muted-foreground">
+                      <Button variant="ghost" onClick={() => goToStep(5)} className="text-muted-foreground">
                         Skip for now
                       </Button>
                     </div>
@@ -381,9 +403,10 @@ export default function Register() {
               </motion.div>
             )}
 
-            {currentStep === 4 && (
-              <motion.div key="step4" variants={variants} initial="initial" animate="animate" exit="exit">
-                <Card>
+            {/* Step 5: Biometric Enrollment (was step 4) */}
+            {currentStep === 5 && (
+              <motion.div key="step5" variants={variants} initial="initial" animate="animate" exit="exit">
+                <Card className="border-white/10 shadow-2xl backdrop-blur-xl bg-background/60">
                   <CardContent className="pt-6 text-center">
                     <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
                       <Fingerprint className="w-8 h-8 text-primary" />
@@ -409,7 +432,7 @@ export default function Register() {
                             onSuccess={() => {
                               setBiometricEnrolled(true);
                               toast.success("Biometric enrolled securely");
-                              setTimeout(() => setCurrentStep(5), 1000);
+                              setTimeout(() => goToStep(6), 1000);
                             }}
                             className="mb-4"
                           />
@@ -422,7 +445,7 @@ export default function Register() {
                                 toast.success("Phone biometric enrolled");
                                 queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
                                 queryClient.invalidateQueries({ queryKey: getGetSecurityStatusQueryKey() });
-                                setTimeout(() => setCurrentStep(5), 1200);
+                                setTimeout(() => goToStep(6), 1200);
                               }}
                             />
                           </div>
@@ -430,7 +453,7 @@ export default function Register() {
                       </>
                     )}
 
-                    <Button variant="ghost" onClick={() => setCurrentStep(5)} className="text-muted-foreground w-full">
+                    <Button variant="ghost" onClick={() => goToStep(6)} className="text-muted-foreground w-full">
                       {biometricEnrolled ? "Continue" : "Skip for now"}
                     </Button>
                   </CardContent>
@@ -438,31 +461,36 @@ export default function Register() {
               </motion.div>
             )}
 
-            {currentStep === 5 && (
-              <motion.div key="step5" variants={variants} initial="initial" animate="animate" exit="exit">
-                <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent">
+            {/* Step 6: Complete */}
+            {currentStep === 6 && (
+              <motion.div key="step6" variants={variants} initial="initial" animate="animate" exit="exit">
+                <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-transparent backdrop-blur-xl bg-background/60 shadow-2xl">
                   <CardContent className="pt-8 pb-8 text-center flex flex-col items-center">
                     <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mb-6 shadow-lg shadow-primary/20">
                       <ShieldCheck className="w-10 h-10 text-primary-foreground" />
                     </div>
                     <h2 className="text-3xl font-bold tracking-tight mb-2">Vault Secured</h2>
-                    <p className="text-muted-foreground mb-8">Your identity data is now protected by Sentinel.</p>
+                    <p className="text-muted-foreground mb-8">Your identity data is now protected by AuthFusion.</p>
 
-                    <div className="w-full bg-card border rounded-xl p-4 mb-8 text-left space-y-3 shadow-sm">
+                    <div className="w-full bg-card border-white/10 rounded-xl p-4 mb-8 text-left space-y-3 shadow-sm backdrop-blur-md bg-background/40">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Email Verified</span>
+                        <span className="text-sm font-medium text-foreground">Email Verified</span>
                         <CheckCircle2 className="w-4 h-4 text-secondary" />
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">MPIN Set</span>
+                        <span className="text-sm font-medium text-foreground">Phone Verified</span>
                         <CheckCircle2 className="w-4 h-4 text-secondary" />
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Face Enrolled</span>
+                        <span className="text-sm font-medium text-foreground">MPIN Set</span>
+                        <CheckCircle2 className="w-4 h-4 text-secondary" />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground">Face Liveness Verified</span>
                         {faceEnrolled ? <CheckCircle2 className="w-4 h-4 text-secondary" /> : <span className="text-xs text-muted-foreground">—</span>}
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Biometric Device</span>
+                        <span className="text-sm font-medium text-foreground">Biometric Device</span>
                         {biometricEnrolled ? <CheckCircle2 className="w-4 h-4 text-secondary" /> : <span className="text-xs text-muted-foreground">—</span>}
                       </div>
                     </div>

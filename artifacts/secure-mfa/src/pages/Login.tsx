@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Logo } from "@/components/Logo";
 import { FaceCapture } from "@/components/FaceCapture";
 import { BiometricButton } from "@/components/BiometricButton";
+import { TicTacToeCaptcha } from "@/components/TicTacToeCaptcha";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,7 +30,7 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
-  const [stage, setStage] = useState<1 | 2>(1);
+  const [stage, setStage] = useState<1 | 1.5 | 2>(1);
   const [email, setEmail] = useState("");
   const [mpin, setMpin] = useState("");
   
@@ -55,7 +56,7 @@ export default function Login() {
     try {
       const res = await lookup.mutateAsync({ data: { email, mpin } });
       setChallengeData(res);
-      setStage(2);
+      setStage(1.5);
     } catch (err: any) {
       toast.error(err.message || "Invalid credentials");
       setMpin("");
@@ -91,7 +92,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-muted/30">
+    <div className="min-h-[100dvh] flex flex-col bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-background to-background">
       <header className="p-6 flex justify-center md:justify-start">
         <Link href="/">
           <Logo />
@@ -103,10 +104,10 @@ export default function Login() {
           <AnimatePresence mode="wait">
             {stage === 1 && (
               <motion.div key="stage1" variants={variants} initial="initial" animate="animate" exit="exit">
-                <Card className="border shadow-lg">
+                <Card className="border-white/10 shadow-2xl backdrop-blur-xl bg-background/60">
                   <CardContent className="pt-8 pb-8">
                     <div className="text-center mb-8">
-                      <h1 className="text-2xl font-semibold tracking-tight">Sign in to Sentinel</h1>
+                      <h1 className="text-2xl font-semibold tracking-tight">Sign in to AuthFusion</h1>
                       <p className="text-sm text-muted-foreground mt-2">Enter your email and MPIN to continue.</p>
                     </div>
 
@@ -144,8 +145,30 @@ export default function Login() {
                     </form>
 
                     <div className="text-center mt-8 text-sm">
-                      <span className="text-muted-foreground">New to Sentinel? </span>
+                      <span className="text-muted-foreground">New to AuthFusion? </span>
                       <Link href="/register" className="text-primary hover:underline font-medium">Create vault</Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {stage === 1.5 && (
+              <motion.div key="stage1_5" variants={variants} initial="initial" animate="animate" exit="exit">
+                <Card className="border-white/10 shadow-2xl backdrop-blur-xl bg-background/60">
+                  <CardContent className="pt-8 pb-8 flex flex-col items-center">
+                    <TicTacToeCaptcha onPass={() => setStage(2)} />
+                    <div className="mt-8 pt-6 border-t border-white/10 w-full flex justify-center">
+                      <button 
+                        onClick={() => {
+                          setStage(1);
+                          setMpin("");
+                        }}
+                        className="flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <ArrowLeft className="w-4 h-4 mr-1" />
+                        Back to email
+                      </button>
                     </div>
                   </CardContent>
                 </Card>
@@ -154,7 +177,7 @@ export default function Login() {
 
             {stage === 2 && challengeData && (
               <motion.div key="stage2" variants={variants} initial="initial" animate="animate" exit="exit">
-                <Card className="border shadow-lg">
+                <Card className="border-white/10 shadow-2xl backdrop-blur-xl bg-background/60">
                   <CardContent className="pt-8 pb-8 text-center">
                     <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4 text-2xl font-semibold uppercase">
                       {challengeData.userHint.fullName.charAt(0)}
@@ -266,7 +289,7 @@ export default function Login() {
                       )}
                     </div>
 
-                    <div className="mt-8 pt-6 border-t flex justify-center">
+                    <div className="mt-8 pt-6 border-t border-white/10 flex justify-center">
                       <button 
                         onClick={() => {
                           setStage(1);

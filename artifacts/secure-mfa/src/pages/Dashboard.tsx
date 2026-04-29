@@ -94,7 +94,24 @@ export default function Dashboard() {
     );
   }
 
-  if (!user || !security) return null; // Handled by App.tsx redirect
+  if (!user) return null; // Handled by App.tsx redirect
+
+  if (!security) {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
+        <div className="text-center space-y-4 p-8 max-w-sm mx-auto">
+          <AlertTriangle className="w-12 h-12 text-destructive mx-auto" />
+          <h2 className="text-xl font-semibold text-foreground">Connection Error</h2>
+          <p className="text-sm text-muted-foreground">
+            Could not fetch your security status. Please ensure the backend API is running.
+          </p>
+          <Button onClick={handleLogout} variant="outline" className="mt-4">
+            Clear Session & Sign Out
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const firstName = user.fullName.split(" ")[0];
   const isFullySecured = security.faceEnrolled && security.biometricEnrolled;

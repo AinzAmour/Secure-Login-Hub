@@ -60,7 +60,7 @@ export default function Landing() {
                 </motion.h1>
                 
                 <motion.p variants={itemVariants} className="text-lg text-muted-foreground mb-8 leading-relaxed max-w-xl">
-                  Sentinel safeguards your sensitive personal data using a proprietary 3-stage protection model: Email OTP, encrypted MPIN, and on-device biometrics (Face & Fingerprint).
+                  AuthFusion safeguards your sensitive personal data using a proprietary 3-stage protection model: Email OTP, encrypted MPIN, and on-device biometrics (Face & Fingerprint).
                 </motion.p>
                 
                 <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4">
@@ -210,7 +210,7 @@ export default function Landing() {
             <Logo />
           </div>
           <p className="text-sm text-muted-foreground text-center md:text-left">
-            © {new Date().getFullYear()} Sentinel Security. All rights reserved.
+            © {new Date().getFullYear()} AuthFusion Security. All rights reserved.
           </p>
         </div>
       </footer>

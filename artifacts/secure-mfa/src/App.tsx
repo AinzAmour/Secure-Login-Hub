@@ -5,6 +5,7 @@ import { Toaster as SonnerToaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useEffect } from "react";
 import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
+import { useAutoLogout } from "@/hooks/useAutoLogout";
 
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
@@ -26,6 +27,9 @@ function AppRoutes() {
       enabled: !isMobileHandoff,
     },
   });
+
+  // Auto-logout after 5 minutes of inactivity (only when authenticated)
+  useAutoLogout(!!user && !isMobileHandoff);
 
   useEffect(() => {
     if (isMobileHandoff) return;
