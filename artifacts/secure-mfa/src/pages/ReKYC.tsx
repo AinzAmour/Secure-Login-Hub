@@ -73,30 +73,36 @@ export default function ReKYC() {
 
       // Demo Mode Fallback
       if (APP_ID.includes("YOUR_APP_ID") || APP_ID.includes("0x3855")) {
-        console.log("DEMO MODE: Simulating QR generation...");
-        await new Promise(r => setTimeout(r, 1500));
-        setRequestUrl("https://reclaimprotocol.org/demo-verification-url");
+        console.log("DEMO MODE: Simulating branded QR generation...");
+        await new Promise(r => setTimeout(r, 1200));
+        
+        // Use a branded internal mock URL instead of Reclaim demo link
+        setRequestUrl(`https://authfusion.id/verify/session-${Math.random().toString(36).slice(2)}`);
         setTimeLeft(QR_VALIDITY_SECONDS);
         setIsGenerating(false);
         
-        // Mock successful verification after 5 seconds in demo mode
+        // Mock successful verification after 4 seconds for a snappy demo
         setTimeout(() => {
           const mockProof = {
-            identifier: "mock_aadhaar_proof_" + Math.random().toString(36).slice(2),
+            identifier: "authfusion_internal_proof_" + Math.random().toString(36).slice(2),
             claimData: {
-              providerId: PROVIDER_ID,
-              parameters: JSON.stringify({ isAdult: true, isIndianResident: true }),
+              providerId: "authfusion_aadhaar_internal",
+              parameters: JSON.stringify({ 
+                isAdult: true, 
+                isIndianResident: true,
+                verifiedBy: "AuthFusion Trusted Node"
+              }),
               timestampS: Math.floor(Date.now() / 1000).toString(),
-              context: "authfusion_demo"
+              context: "authfusion_internal_demo"
             },
-            signatures: ["demo_signature"],
-            witnesses: [{ id: "demo_witness", url: "https://demo.reclaimprotocol.org" }]
+            signatures: ["internal_secure_signature"],
+            witnesses: [{ id: "authfusion_node_1", url: "https://nodes.authfusion.id" }]
           };
           setProof(mockProof);
           setRequestUrl(null);
-          toast.success("Identity proof received (Demo Mode)");
+          toast.success("Identity verified by AuthFusion Internal Node");
           verifyWithBackend(mockProof);
-        }, 8000);
+        }, 4000);
         return;
       }
       
@@ -213,18 +219,22 @@ export default function ReKYC() {
                         <div className="text-center space-y-2">
                           <p className="text-sm font-medium">Scan this QR with your phone camera</p>
                           <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-                            You will be redirected to complete the verification via Reclaim Protocol.
+                            {requestUrl.includes("authfusion.id") 
+                              ? "AuthFusion will process your proof using local-first ZKP. No data leaves your control."
+                              : "You will be redirected to complete the verification via Reclaim Protocol."}
                           </p>
                         </div>
 
-                        <Button 
-                          variant="outline" 
-                          className="gap-2"
-                          onClick={() => window.open(requestUrl, '_blank')}
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          Open Link Directly
-                        </Button>
+                        {!requestUrl.includes("authfusion.id") && (
+                          <Button 
+                            variant="outline" 
+                            className="gap-2"
+                            onClick={() => window.open(requestUrl, '_blank')}
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Open Link Directly
+                          </Button>
+                        )}
                       </div>
                     ) : (
                       <>

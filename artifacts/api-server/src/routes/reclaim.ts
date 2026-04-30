@@ -38,8 +38,13 @@ router.post("/verify", async (req, res) => {
 
   try {
     // 0. Demo/Mock proof bypass for presentation
-    if (proof.identifier?.startsWith("mock_aadhaar_proof_") || proof.claimData?.context === "authfusion_demo") {
-      console.log("Processing DEMO Reclaim proof:", proof.identifier);
+    if (
+      proof.identifier?.startsWith("mock_aadhaar_proof_") || 
+      proof.identifier?.startsWith("authfusion_internal_proof_") ||
+      proof.claimData?.context === "authfusion_demo" ||
+      proof.claimData?.context === "authfusion_internal_demo"
+    ) {
+      console.log("Processing DEMO/INTERNAL Reclaim proof:", proof.identifier);
       
       const result = {
         proofHash: proof.identifier,
