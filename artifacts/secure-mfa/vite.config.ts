@@ -90,6 +90,12 @@ export default defineConfig({
     chunkSizeWarningLimit: 2000,
     sourcemap: false, // Disable sourcemaps to avoid build warnings on Vercel
     rollupOptions: {
+      onwarn(warning, warn) {
+        if (warning.code === 'SOURCEMAP_ERROR' || warning.message.includes('Error when using sourcemap')) {
+          return;
+        }
+        warn(warning);
+      },
       output: {
         manualChunks: {
           mediapipe: ['@mediapipe/tasks-vision'],
