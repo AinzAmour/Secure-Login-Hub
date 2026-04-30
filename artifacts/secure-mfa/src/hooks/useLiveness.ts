@@ -19,8 +19,16 @@ export function useLiveness() {
   const [passed, setPassed] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isReady, setIsReady] = useState(false)
   const stabilityCounterRef = useRef(0)
   const loadingRef = useRef(false)
+  const isDestroyedRef = useRef(false)
+
+  useEffect(() => {
+    return () => {
+      isDestroyedRef.current = true
+    }
+  }, [])
 
   const stop = useCallback(() => {
     if (rafRef.current) {
@@ -30,19 +38,20 @@ export function useLiveness() {
     const stream = videoRef.current?.srcObject as MediaStream | null
     if (stream) {
       stream.getTracks().forEach(t => t.stop())
-      videoRef.current!.srcObject = null
+      if (videoRef.current) videoRef.current.srcObject = null
     }
+    setIsReady(false)
   }, [])
 
   const start = useCallback(async () => {
-    // Prevent multiple starts
-    if (loadingRef.current) return
+    if (loadingRef.current || isDestroyedRef.current) return
     loadingRef.current = true
     stop()
     
     setLoading(true)
     setError(null)
     setPassed(false)
+    setIsReady(false)
     stabilityCounterRef.current = 0
 
     try {
@@ -58,12 +67,23 @@ export function useLiveness() {
         },
       })
       
+      if (isDestroyedRef.current) {
+        stream.getTracks().forEach(t => t.stop())
+        return
+      }
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream
+        // Wait for video to be ready
+        await new Promise((resolve) => {
+          if (videoRef.current) {
+            videoRef.current.onloadedmetadata = () => resolve(true)
+          } else resolve(false)
+        })
         await videoRef.current.play()
+        setIsReady(true)
       }
       
-      // Pick random challenge
       const challenge = CHALLENGES[Math.floor(Math.random() * CHALLENGES.length)]
       setCurrentChallenge(challenge)
       runLoop(challenge)
@@ -77,6 +97,7 @@ export function useLiveness() {
   }, [stop])
 
   const runLoop = useCallback((challenge: Challenge) => {
+    if (isDestroyedRef.current) return
     const video = videoRef.current
     const landmarker = landmarkerRef.current
     if (!video || !landmarker) return
@@ -107,5 +128,5 @@ export function useLiveness() {
     return () => stop()
   }, [stop])
 
-  return { videoRef, currentChallenge, passed, loading, error, start, stop }
+  return { videoRef, currentChallenge, passed, loading, error, isReady, start, stop }
 }

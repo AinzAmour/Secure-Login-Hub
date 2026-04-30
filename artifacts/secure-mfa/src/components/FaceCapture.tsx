@@ -26,7 +26,7 @@ export const FaceCapture: React.FC<FaceCaptureProps> = ({
   mode = "enroll",
   className 
 }) => {
-  const { videoRef, currentChallenge, passed, loading, error, start, stop } = useLiveness()
+  const { videoRef, currentChallenge, passed, loading, error, isReady, start, stop } = useLiveness()
 
   useEffect(() => {
     start()
@@ -53,20 +53,25 @@ export const FaceCapture: React.FC<FaceCaptureProps> = ({
       <div className="relative w-full aspect-square max-w-sm overflow-hidden rounded-3xl border-2 border-primary/20 bg-muted/30 shadow-inner">
         <video
           ref={videoRef}
-          className="h-full w-full object-cover mirror"
+          className={cn(
+            "h-full w-full object-cover mirror transition-opacity duration-700",
+            isReady ? "opacity-100" : "opacity-0"
+          )}
           playsInline
           muted
           aria-hidden="true"
         />
         
-        {loading && (
+        {(loading || !isReady) && !passed && (
           <div 
             className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm transition-all animate-in fade-in duration-500"
             role="status"
             aria-live="polite"
           >
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="mt-4 text-sm font-medium animate-pulse">Initializing Biometric AI...</p>
+            <p className="mt-4 text-sm font-medium animate-pulse">
+              {loading ? "Initializing Biometric AI..." : "Activating Camera..."}
+            </p>
           </div>
         )}
 
@@ -83,7 +88,7 @@ export const FaceCapture: React.FC<FaceCaptureProps> = ({
           </div>
         )}
 
-        {!loading && !passed && currentChallenge && (
+        {!loading && isReady && !passed && currentChallenge && (
           <div className="absolute bottom-6 left-6 right-6">
             <div 
               className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl p-4 text-center shadow-2xl"
