@@ -85,6 +85,8 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
     target: 'esnext',
+    chunkSizeWarningLimit: 2000,
+    sourcemap: false, // Disable sourcemaps to avoid build warnings on Vercel
     rollupOptions: {
       output: {
         manualChunks: {
