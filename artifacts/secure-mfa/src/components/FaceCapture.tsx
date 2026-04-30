@@ -26,7 +26,7 @@ export const FaceCapture: React.FC<FaceCaptureProps> = ({
   mode = "enroll",
   className 
 }) => {
-  const { videoRef, currentChallenge, passed, loading, error, start } = useLiveness()
+  const { videoRef, currentChallenge, passed, loading, error, start, stop } = useLiveness()
 
   useEffect(() => {
     start()
