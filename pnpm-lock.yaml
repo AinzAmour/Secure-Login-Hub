@@ -457,6 +457,9 @@ importers:
       '@mediapipe/tasks-vision':
         specifier: ^0.10.35
         version: 0.10.35
+      '@reclaimprotocol/js-sdk':
+        specifier: ^5.2.0
+        version: 5.2.0
       '@sentry/react':
         specifier: ^10.50.0
         version: 10.50.0(react@19.1.0)
